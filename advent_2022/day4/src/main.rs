@@ -9,7 +9,7 @@ fn range_raw_to_int(range: &str) -> (i32, i32) {
     (left, right)
 }
 
-fn main() {
+fn task_1() -> i32 {
     let contents = fs::read_to_string(INPUT).expect("Should have been able to read the file");
     let lines: Vec<&str> = contents.split("\n").filter(|l| l.len() != 0).collect();
 
@@ -25,5 +25,32 @@ fn main() {
             sum += 1;
         }
     }
-    println!("{:?}", sum);
+    sum
+}
+
+fn task_2() -> i32 {
+    let contents = fs::read_to_string(INPUT).expect("Should have been able to read the file");
+    let lines: Vec<&str> = contents.split("\n").filter(|l| l.len() != 0).collect();
+
+    let mut sum = 0;
+    for line in lines {
+        let ranges: Vec<&str> = line.split(",").collect();
+        let r_a = range_raw_to_int(ranges[0]);
+        let r_b = range_raw_to_int(ranges[1]);
+
+        let check_1 = r_a.0 >= r_b.0 && r_a.0 <= r_b.1;
+        let check_2 = r_b.0 >= r_a.0 && r_b.0 <= r_a.1;
+        if check_1 || check_2 {
+            sum += 1;
+        }
+    }
+    sum
+}
+
+fn main() {
+    let task_1 = task_1();
+    println!("{:?}", task_1);
+
+    let task_2 = task_2();
+    println!("{:?}", task_2);
 }
