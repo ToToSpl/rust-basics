@@ -7,7 +7,7 @@ use tqdm::tqdm;
 
 const INPUT: &str = "input.txt";
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 struct Map {
     input_start: usize,
     output_start: usize,
@@ -65,12 +65,29 @@ impl Mapper {
     }
 
     fn map(&self, input: usize) -> usize {
-        for map in &self.maps {
-            if let Some(output) = map.map(input) {
-                return output;
+        // little faster than naive search
+        let map_pot = self.maps.binary_search_by_key(&input, |&map| {
+            if input < map.input_start {
+                return map.input_start;
+            } else if input >= map.input_start + map.range {
+                return map.input_start;
+            } else {
+                return input;
             }
+        });
+
+        if let Ok(i) = map_pot {
+            return self.maps[i].map(input).unwrap();
+        } else {
+            return input;
         }
-        return input;
+
+        // for map in &self.maps {
+        //     if let Some(output) = map.map(input) {
+        //         return output;
+        //     }
+        // }
+        // return input;
     }
 }
 
