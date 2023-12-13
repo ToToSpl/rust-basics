@@ -1,5 +1,6 @@
 use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
+use std::collections::HashMap;
 use std::{fs, iter::zip};
 
 const INPUT: &str = "input.txt";
@@ -9,6 +10,12 @@ enum SpringType {
     Working,
     Broken,
     Unknown,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct ChunkCheck {
+    broken: Vec<u32>,
+    index: usize,
 }
 
 #[derive(Debug, Clone)]
@@ -75,61 +82,120 @@ impl Record {
     }
 
     fn count_correct_combs(&self) -> usize {
-        fn recur(index: usize, springs: &Vec<SpringType>, broken: &Vec<u32>) -> usize {
-            if index >= springs.len() {
-                return if Record::check_correctness(springs, broken) {
+        fn recur(
+            springs: &Vec<SpringType>,
+            broken: &Vec<u32>,
+            chunk: &mut ChunkCheck,
+            dict: &mut HashMap<ChunkCheck, usize>,
+            count: u32,
+        ) -> usize {
+            if count == 0 {
+                if let Some(combs) = dict.get(chunk) {
+                    return *combs;
+                }
+            }
+
+            if chunk.index >= springs.len() {
+                if count != 0 {
+                    chunk.broken.push(count);
+                }
+                return if broken.len() == chunk.broken.len()
+                    && zip(broken, &chunk.broken)
+                        .filter(|(a, b)| **a != **b)
+                        .count()
+                        == 0
+                {
                     1
                 } else {
                     0
                 };
             }
 
-            if springs[index] != SpringType::Unknown {
-                return recur(index + 1, springs, broken);
+            let mut count = count;
+            let curr_spring = springs[chunk.index];
+
+            if curr_spring == SpringType::Working {
+                if count != 0 {
+                    chunk.broken.push(count);
+                    if zip(broken, &chunk.broken)
+                        .filter(|(a, b)| **a != **b)
+                        .count()
+                        != 0
+                    {
+                        return 0;
+                    }
+                    count = 0;
+                }
+                chunk.index += 1;
+                let combs = recur(springs, broken, chunk, dict, count);
+                if count == 0 {
+                    dict.insert(chunk.clone(), combs);
+                }
+                return combs;
             }
 
-            let opts = if index == 0 {
-                Some(vec![SpringType::Working, SpringType::Broken])
-            } else {
-                Record::propose_next_spring(springs, broken, index)
-            };
+            if curr_spring == SpringType::Broken {
+                count += 1;
+                chunk.index += 1;
+                return recur(springs, broken, chunk, dict, count);
+            }
 
-            return match opts {
+            return match Record::propose_next_spring(chunk, broken, count) {
                 Some(opts) => {
                     let mut combs: usize = 0;
                     for opt in opts {
-                        let mut arr = springs.clone();
-                        arr[index] = opt;
-                        combs += recur(index + 1, &arr, broken)
+                        let mut new_chunk = chunk.clone();
+                        let mut new_count = count;
+                        if opt == SpringType::Working {
+                            if new_count != 0 {
+                                new_chunk.broken.push(new_count);
+                                if zip(broken, &new_chunk.broken)
+                                    .filter(|(a, b)| **a != **b)
+                                    .count()
+                                    != 0
+                                {
+                                    continue;
+                                }
+
+                                new_count = 0;
+                            }
+                        } else {
+                            new_count += 1;
+                        }
+                        new_chunk.index += 1;
+                        let comb = recur(springs, broken, &mut new_chunk, dict, new_count);
+                        if new_count == 0 {
+                            dict.insert(new_chunk, comb);
+                        }
+                        combs += comb;
+                    }
+                    if count == 0 {
+                        dict.insert(chunk.clone(), combs);
                     }
                     combs
                 }
                 None => 0,
             };
         }
-        recur(0, &self.springs, &self.broken)
+        let mut dict: HashMap<ChunkCheck, usize> = HashMap::new();
+        let mut chunk = ChunkCheck {
+            index: 0,
+            broken: vec![],
+        };
+        recur(&self.springs, &self.broken, &mut chunk, &mut dict, 0)
     }
 
     fn propose_next_spring(
-        springs: &Vec<SpringType>,
+        chunk: &ChunkCheck,
         broken: &Vec<u32>,
-        index: usize,
+        count: u32,
     ) -> Option<Vec<SpringType>> {
-        let mut prev = springs[0];
-        let mut cycles = 0;
-        let mut count = 0;
-        for i in 0..index {
-            let spring = springs[i];
-            if spring == SpringType::Broken {
-                count += 1;
-            } else if prev == SpringType::Broken {
-                cycles += 1;
-                count = 0;
+        if chunk.broken.len() > broken.len() {
+            return None;
+        } else if chunk.broken.len() == broken.len() {
+            if chunk.broken.last().unwrap() != broken.last().unwrap() {
+                return None;
             }
-            prev = spring;
-        }
-
-        if broken.len() <= cycles {
             return Some(vec![SpringType::Working]);
         }
 
@@ -137,59 +203,15 @@ impl Record {
             return Some(vec![SpringType::Working, SpringType::Broken]);
         }
 
-        return if count > broken[cycles] {
+        let target = broken[chunk.broken.len()];
+
+        return if count > target {
             None
-        } else if count < broken[cycles] {
+        } else if count < target {
             Some(vec![SpringType::Broken])
         } else {
             Some(vec![SpringType::Working])
         };
-    }
-
-    fn print_springs(springs: &Vec<SpringType>) {
-        for spring in springs {
-            match spring {
-                SpringType::Broken => print!("#"),
-                SpringType::Working => print!("."),
-                SpringType::Unknown => print!("?"),
-            }
-        }
-        println!("");
-    }
-
-    fn check_correctness(springs: &Vec<SpringType>, broken: &Vec<u32>) -> bool {
-        if springs
-            .iter()
-            .find(|&&s| s == SpringType::Unknown)
-            .is_some()
-        {
-            return false;
-        }
-
-        let mut broken_in_springs = Vec::new();
-        let mut prev = springs[0];
-        let mut count = 0;
-        for spring in springs {
-            if *spring == SpringType::Broken {
-                count += 1;
-            } else if prev == SpringType::Broken {
-                broken_in_springs.push(count);
-                count = 0;
-            }
-            prev = *spring;
-        }
-        if count != 0 {
-            broken_in_springs.push(count);
-        }
-
-        if broken_in_springs.len() != broken.len() {
-            return false;
-        }
-
-        zip(broken_in_springs, broken)
-            .filter(|(a, b)| *a != **b)
-            .count()
-            == 0
     }
 }
 
