@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::iter::zip;
 use std::{fs, usize};
 
-const INPUT: &str = "input.test.txt";
+const INPUT: &str = "input.txt";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
@@ -69,6 +69,9 @@ impl Tile {
 
         let new_tiles = zip(new_dirs, new_coords)
             .filter_map(|(d, c)| {
+                if self.forward_steps < 3 && d != self.curr_dir {
+                    return None;
+                }
                 if c.0 < 0 || c.0 >= map.width as i64 || c.1 < 0 || c.1 >= map.height as i64 {
                     return None;
                 }
@@ -77,7 +80,7 @@ impl Tile {
                 } else {
                     0
                 };
-                if steps == 3 {
+                if steps == 10 {
                     return None;
                 }
 
@@ -105,26 +108,32 @@ fn a_star(tile_start: &Tile, end_coord: (i64, i64), map: &Map) -> Tile {
     while let Some((tile, _)) = pq.pop() {
         let new_tiles = tile.new_tiles(map);
         for tile in new_tiles {
-            if tile.x == end_coord.0 && tile.y == end_coord.1 {
-                return tile;
-            }
             if let Some(better) = best.get(&(tile.x, tile.y, tile.forward_steps, tile.curr_dir)) {
                 if better.cooldown_sum < tile.cooldown_sum {
                     continue;
                 }
             }
             pq.push(tile, -tile.cooldown_sum);
-            best.insert(
-                (tile.x, tile.y, tile.forward_steps, tile.curr_dir),
-                tile.clone(),
-            );
+            best.insert((tile.x, tile.y, tile.forward_steps, tile.curr_dir), tile);
         }
     }
 
-    panic!("Solution not found!");
+    use Direction::*;
+    let best_tile = [Up, Down, Left, Right]
+        .iter()
+        .map(|d| {
+            [3, 4, 5, 6, 7, 8, 9]
+                .iter()
+                .filter_map(|s| best.get(&(end_coord.0, end_coord.1, *s as u8, *d)))
+        })
+        .flatten()
+        .min_by_key(|t| t.cooldown_sum)
+        .unwrap();
+
+    *best_tile
 }
 
-fn task1() {
+fn task2() {
     let map = Map::new(INPUT);
     let start = (0, 0);
     let end_point = (map.width as i64 - 1, map.height as i64 - 1);
@@ -137,9 +146,9 @@ fn task1() {
     };
     let best_tile = a_star(&tile_start, end_point, &map);
 
-    println!("task1 {:?}", best_tile.cooldown_sum);
+    println!("task2 {:?}", best_tile.cooldown_sum);
 }
 
 fn main() {
-    task1();
+    task2();
 }
