@@ -101,36 +101,40 @@ impl Tile {
 }
 
 fn a_star(tile_start: &Tile, end_coord: (i64, i64), map: &Map) -> Tile {
-    let mut best: HashMap<(i64, i64, u8, Direction), Tile> = HashMap::new();
+    let mut best: HashMap<(i64, i64, u8, Direction), i64> = HashMap::new();
 
+    let mut tile_start2 = tile_start.clone();
+    tile_start2.curr_dir = Direction::Down;
     let mut pq: PriorityQueue<Tile, i64> = PriorityQueue::new();
     pq.push(*tile_start, -tile_start.cooldown_sum);
+    pq.push(tile_start2, -tile_start2.cooldown_sum);
     while let Some((tile, _)) = pq.pop() {
         let new_tiles = tile.new_tiles(map);
         for tile in new_tiles {
-            if let Some(better) = best.get(&(tile.x, tile.y, tile.forward_steps, tile.curr_dir)) {
-                if better.cooldown_sum < tile.cooldown_sum {
+            if tile.x == end_coord.0 && tile.y == end_coord.1 && tile.forward_steps >= 3 {
+                return tile;
+            }
+            // if let Some((better, _)) = pq.get(&tile) {
+            //     if better.cooldown_sum < tile.cooldown_sum {
+            //         continue;
+            //     }
+            // }
+            if let Some(cooldown_sum) =
+                best.get(&(tile.x, tile.y, tile.forward_steps, tile.curr_dir))
+            {
+                if *cooldown_sum < tile.cooldown_sum {
                     continue;
                 }
             }
             pq.push(tile, -tile.cooldown_sum);
-            best.insert((tile.x, tile.y, tile.forward_steps, tile.curr_dir), tile);
+            best.insert(
+                (tile.x, tile.y, tile.forward_steps, tile.curr_dir),
+                tile.cooldown_sum,
+            );
         }
     }
 
-    use Direction::*;
-    let best_tile = [Up, Down, Left, Right]
-        .iter()
-        .map(|d| {
-            [3, 4, 5, 6, 7, 8, 9]
-                .iter()
-                .filter_map(|s| best.get(&(end_coord.0, end_coord.1, *s as u8, *d)))
-        })
-        .flatten()
-        .min_by_key(|t| t.cooldown_sum)
-        .unwrap();
-
-    *best_tile
+    panic!("Solution not found!");
 }
 
 fn task2() {

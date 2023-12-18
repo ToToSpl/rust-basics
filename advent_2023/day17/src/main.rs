@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use std::iter::zip;
 use std::{fs, usize};
 
-const INPUT: &str = "input.test.txt";
+const INPUT: &str = "input.txt";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Direction {
