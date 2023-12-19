@@ -1,7 +1,6 @@
-use std::collections::HashSet;
 use std::fs;
 
-const INPUT: &str = "input.test.txt";
+const INPUT: &str = "input.txt";
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 enum Direction {
@@ -54,85 +53,36 @@ impl Instruction {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
-enum Occupancy {
-    Empty,
-    Digged,
-    Edge,
-}
+fn volume_from_instructions(instructions: &[Instruction]) -> i64 {
+    let mut curr: (i64, i64) = (0, 0);
+    let mut boundary: i64 = 0;
+    let a_doubled = instructions
+        .iter()
+        .map(|instr| {
+            boundary += instr.len;
+            curr = match instr.dir {
+                Direction::Up => (curr.0, curr.1 - instr.len),
+                Direction::Down => (curr.0, curr.1 + instr.len),
+                Direction::Left => (curr.0 - instr.len, curr.1),
+                Direction::Right => (curr.0 + instr.len, curr.1),
+            };
+            curr
+        })
+        .collect::<Vec<_>>()
+        .windows(2)
+        .map(|c| c[0].0 * c[1].1 - c[0].1 * c[1].0)
+        .sum::<i64>();
 
-#[derive(Debug, Clone)]
-struct Map {
-    map: Vec<Vec<Occupancy>>,
-    width: usize,
-    height: usize,
-}
-
-impl Map {
-    fn new(instructions: &Vec<Instruction>) -> Map {
-        let mut set: HashSet<(i64, i64)> = HashSet::new();
-        let mut curr: (i64, i64) = (0, 0);
-        set.insert(curr);
-        for instr in instructions {
-            for _ in 0..instr.len {
-                curr = match instr.dir {
-                    Direction::Up => (curr.0, curr.1 - 1),
-                    Direction::Down => (curr.0, curr.1 + 1),
-                    Direction::Left => (curr.0 - 1, curr.1),
-                    Direction::Right => (curr.0 + 1, curr.1),
-                };
-                set.insert(curr);
-            }
-        }
-
-        let offset_x = set.iter().min_by_key(|c| c.0).unwrap().0;
-        let offset_y = set.iter().min_by_key(|c| c.1).unwrap().1;
-        let width = (set.iter().max_by_key(|c| c.0).unwrap().0 - offset_x) as usize + 1;
-        let height = (set.iter().max_by_key(|c| c.1).unwrap().1 - offset_y) as usize + 1;
-
-        let mut map = vec![vec![Occupancy::Empty; width]; height];
-        for c in &set {
-            map[(c.1 - offset_y) as usize][(c.0 - offset_x) as usize] = Occupancy::Edge;
-        }
-
-        let mut to_fill: Vec<(i64, i64)> = Vec::new();
-        // assumption that field right down to start is filled
-        // (works for me, dont want to check inside/outside)
-        to_fill.push((1 - offset_x, 1 - offset_y));
-        while let Some(coord) = to_fill.pop() {
-            [(0, 1), (0, -1), (1, 0), (-1, 0)]
-                .iter()
-                .map(|c| (coord.0 + c.0, coord.1 + c.1))
-                .filter(|c| c.0 >= 0 && c.0 < width as i64 && c.1 >= 0 && c.1 < height as i64)
-                .for_each(|c| {
-                    let tile = map[c.1 as usize][c.0 as usize];
-                    if tile == Occupancy::Empty {
-                        map[c.1 as usize][c.0 as usize] = Occupancy::Digged;
-                        to_fill.push(c);
-                    }
-                });
-        }
-
-        Map { map, width, height }
-    }
+    assert!(a_doubled % 2 == 0);
+    assert!(boundary % 2 == 0);
+    a_doubled / 2 + boundary / 2 + 1
 }
 
 fn task1() {
     let contents = fs::read_to_string(INPUT).unwrap();
-    let instructions = contents
-        .lines()
-        .map(|l| Instruction::new(l))
-        .collect::<Vec<_>>();
+    let instructions = contents.lines().map(Instruction::new).collect::<Vec<_>>();
 
-    let map = Map::new(&instructions);
-
-    let filled = map
-        .map
-        .iter()
-        .flatten()
-        .filter(|o| **o != Occupancy::Empty)
-        .count();
-
+    let filled = volume_from_instructions(&instructions);
     println!("task1 {:?}", filled);
 }
 
@@ -140,23 +90,11 @@ fn task2() {
     let contents = fs::read_to_string(INPUT).unwrap();
     let instructions = contents
         .lines()
-        .map(|l| Instruction::new_corrected(l))
+        .map(Instruction::new_corrected)
         .collect::<Vec<_>>();
 
-    for instr in instructions {
-        println!("{:?}", instr);
-    }
-
-    // let map = Map::new(&instructions);
-    //
-    // let filled = map
-    //     .map
-    //     .iter()
-    //     .flatten()
-    //     .filter(|o| **o != Occupancy::Empty)
-    //     .count();
-    //
-    // println!("task2 {:?}", filled);
+    let filled = volume_from_instructions(&instructions);
+    println!("task2 {:?}", filled);
 }
 
 fn main() {
