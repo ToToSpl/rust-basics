@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::fs;
 
 const INPUT: &str = "input.txt";
@@ -154,8 +154,8 @@ fn task1() {
     let mut low_signal_count: usize = 0;
 
     for _ in 0..1000 {
-        let mut event_stack = vec![start_event.clone()];
-        while let Some(event) = event_stack.pop() {
+        let mut event_stack = VecDeque::from([start_event.clone()]);
+        while let Some(event) = event_stack.pop_front() {
             // println!("{:} -{:?}-> {:}", event.from, event.pulse, event.to);
             if event.pulse == Pulse::High {
                 high_signal_count += 1;
@@ -168,7 +168,10 @@ fn task1() {
             }
 
             for (_, module) in &mut modules {
-                event_stack.append(&mut module.update_step());
+                let events = module.update_step();
+                for event in events {
+                    event_stack.push_back(event);
+                }
             }
         }
         // println!("");
@@ -195,7 +198,7 @@ fn task2() {
     }
 
     let start_event = Signal {
-        from: String::from("button "),
+        from: String::from("button"),
         to: String::from("broadcaster"),
         pulse: Pulse::Low,
     };
@@ -206,21 +209,17 @@ fn task2() {
         (String::from("rf"), 0),
         (String::from("vq"), 0),
     ]);
+
     let destination = String::from("hp");
 
     let mut count = 0;
     loop {
-        let mut event_stack = vec![start_event.clone()];
+        let mut event_stack = VecDeque::from([start_event.clone()]);
         count += 1;
-        while let Some(event) = event_stack.pop() {
-            if let Some(trigger_count) = counter_triggers.get(&event.from) {
-                if event.to == destination {
-                    if event.pulse == Pulse::High {
-                        println!("{:} send high at {:?}", event.from, count);
-                        counter_triggers.insert(event.from.clone(), count);
-                    } else if count == *trigger_count {
-                        counter_triggers.insert(event.from.clone(), 0);
-                    }
+        while let Some(event) = event_stack.pop_front() {
+            if event.to == destination {
+                if event.pulse == Pulse::High {
+                    counter_triggers.insert(event.from.clone(), count);
                 }
             }
 
@@ -229,7 +228,10 @@ fn task2() {
             }
 
             for (_, module) in &mut modules {
-                event_stack.append(&mut module.update_step());
+                let events = module.update_step();
+                for event in events {
+                    event_stack.push_back(event);
+                }
             }
         }
         if counter_triggers.iter().filter(|&(_, &c)| c == 0).count() == 0 {
@@ -238,6 +240,10 @@ fn task2() {
     }
 
     println!("{:?}", counter_triggers);
+    println!(
+        "task2 {:?}",
+        counter_triggers.iter().fold(1, |acc, (_, c)| acc * c)
+    )
 }
 
 fn main() {
