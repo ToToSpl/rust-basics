@@ -1,8 +1,9 @@
 use std::collections::HashSet;
 use std::fs;
+use std::io::Write;
 use tqdm::tqdm;
 
-const INPUT: &str = "input.test.txt";
+const INPUT: &str = "input.txt";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum Field {
@@ -112,14 +113,16 @@ fn task2() {
         x: map.start_x,
         y: map.start_y,
     }]);
-    let max_steps = 1000;
+    let max_steps = 26_501_365; // haha
+    let mut file = fs::File::create("data_out.txt").unwrap();
 
-    for _ in tqdm(0..max_steps) {
+    for s in tqdm(0..max_steps) {
         let mut new_finished = HashSet::new();
         for point in &finished {
             for c in [(0, 1), (0, -1), (1, 0), (-1, 0)] {
                 let x = point.x + c.0;
                 let y = point.y + c.1;
+
                 if map.get(x, y) == Field::Occupied {
                     continue;
                 }
@@ -128,6 +131,8 @@ fn task2() {
         }
 
         finished = new_finished;
+        file.write_all(format!("{:} {:}\n", s, finished.iter().count()).as_bytes())
+            .unwrap();
     }
 
     println!("task2 {:?}", finished.iter().count());
