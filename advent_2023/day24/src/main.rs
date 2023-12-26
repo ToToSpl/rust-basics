@@ -1,6 +1,6 @@
 use std::fs;
 
-const INPUT: &str = "input.txt";
+const INPUT: &str = "input.test.txt";
 
 #[derive(Clone, Copy, Debug)]
 struct Vector<T> {
