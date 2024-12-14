@@ -104,11 +104,9 @@ fn calculate_click_count(
 }
 
 fn task1() {
-    let arcades = get_arcades();
-
-    let best_plays: Vec<Option<usize>> = arcades
+    let score: usize = get_arcades()
         .iter()
-        .map(|&(a, b, prize)| {
+        .filter_map(|&(a, b, prize)| {
             let comb_1 = calculate_click_count(a, b, prize);
             let comb_2 = calculate_click_count(b, a, prize);
 
@@ -123,17 +121,13 @@ fn task1() {
                 }
             }
         })
-        .collect();
-
-    let score = best_plays.iter().filter_map(|p| *p).sum::<usize>();
+        .sum();
 
     println!("task1:\t{score}");
 }
 
 fn task2() {
-    let arcades = get_arcades();
-
-    let best_plays: Vec<Option<usize>> = arcades
+    let score: usize = get_arcades()
         .iter()
         .map(|&(a, b, prize)| {
             (
@@ -145,7 +139,7 @@ fn task2() {
                 },
             )
         })
-        .map(|(a, b, prize)| {
+        .filter_map(|(a, b, prize)| {
             let comb_1 = calculate_click_count(a, b, prize);
             let comb_2 = calculate_click_count(b, a, prize);
 
@@ -160,9 +154,7 @@ fn task2() {
                 }
             }
         })
-        .collect();
-
-    let score = best_plays.iter().filter_map(|p| *p).sum::<usize>();
+        .sum();
 
     println!("task2:\t{score}");
 }
