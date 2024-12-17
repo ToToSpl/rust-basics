@@ -130,51 +130,31 @@ fn task1() {
     println!("task1:\t{score}");
 }
 
-fn check_recur(input: &[usize], i: usize, a: usize) -> Option<usize> {
-    let op = input[i];
-    let mut a_s = Vec::new();
-
-    for pot_a in (a << 3)..((a << 3) | 0b111) + 1 {
-        let a = pot_a;
-        let mut b;
-        let c;
-
-        b = a & 0b111; // bst 4
-        b = b ^ 0b011; // bxl 3
-        c = a >> b; // cdv 5
-        b = b ^ 0b100; // bxl 4
-        b = b ^ c; // bxc 7
-
-        if (b & 0b111) != op {
-            continue;
-        }
-        a_s.push(pot_a);
-    }
-
-    if i == 0 {
-        a_s.into_iter().min()
-    } else {
-        a_s.into_iter()
-            .filter_map(|a| check_recur(input, i - 1, a))
-            .min()
-    }
-}
-
 fn task2() {
     let input: [usize; 16] = [2, 4, 1, 3, 7, 5, 0, 3, 1, 4, 4, 7, 5, 5, 3, 0];
+    let mut final_a = 0;
 
-    let a = check_recur(&input, input.len() - 1, 0).unwrap();
+    'outer: for &op in input.iter().rev() {
+        for pot_a in (final_a << 3)..((final_a << 3) | 0b111) + 1 {
+            let a = pot_a;
+            let mut b;
+            let c;
 
-    println!("task2:\t{a:?}");
-    println!("input:\t{input:?}");
+            b = a & 0b111; // bst 4
+            b = b ^ 0b011; // bxl 3
+            c = a >> b; // cdv 5
+            b = b ^ 0b100; // bxl 4
+            b = b ^ c; // bxc 7
 
-    let mut computer = Computer::new(INPUT);
-    computer.reg_a = a;
-    let mut sink = Vec::new();
-    while computer.tick(&mut sink).is_some() {}
-    let score = sink.into_iter().map(|o| o.to_string()).join(",");
+            if (b & 0b111) == op {
+                final_a = pot_a;
+                continue 'outer;
+            }
+        }
+        panic!("no a was found");
+    }
 
-    println!("output:\t{score}");
+    println!("task2:\t{final_a}");
 }
 
 fn main() {
