@@ -168,24 +168,13 @@ fn task2() {
     println!("task2:\t{a:?}");
     println!("input:\t{input:?}");
 
-    let mut a = a;
-    let mut b;
-    let mut c;
+    let mut computer = Computer::new(INPUT);
+    computer.reg_a = a;
+    let mut sink = Vec::new();
+    while computer.tick(&mut sink).is_some() {}
+    let score = sink.into_iter().map(|o| o.to_string()).join(",");
 
-    let mut output = Vec::new();
-    loop {
-        b = a & 0b111; // bst 4
-        b = b ^ 0b011; // bxl 3
-        c = a >> b; // cdv 5
-        a = a >> 3; // adv 3
-        b = b ^ 0b100; // bxl 4
-        b = b ^ c; // bxc 7
-        output.push(b & 0b111);
-        if a == 0 {
-            break;
-        }
-    }
-    println!("output:\t{output:?}");
+    println!("output:\t{score}");
 }
 
 fn main() {
