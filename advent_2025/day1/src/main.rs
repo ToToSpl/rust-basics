@@ -35,6 +35,7 @@ fn task1() {
 
 fn task2() {
     let contents = fs::read_to_string(INPUT).unwrap();
+
     let mut dial_pos = 50;
     let mut zero_passed = 0;
 
@@ -44,24 +45,16 @@ fn task2() {
 
         match dir {
             "L" => {
-                if count >= dial_pos {
-                    if dial_pos != 0 {
-                        zero_passed += 1;
-                    }
-
-                    zero_passed += (count - dial_pos) / 100;
-                    dial_pos = (100 + (dial_pos - count) % 100) % 100;
-                } else {
-                    dial_pos -= count;
+                if count >= dial_pos && dial_pos != 0 {
+                    zero_passed += 1;
                 }
+
+                zero_passed += (count - dial_pos) / 100;
+                dial_pos = (100 + (dial_pos - count) % 100) % 100;
             }
             "R" => {
-                if count + dial_pos < 100 {
-                    dial_pos += count;
-                } else {
-                    zero_passed += (count + dial_pos) / 100;
-                    dial_pos = (count + dial_pos) % 100;
-                }
+                zero_passed += (count + dial_pos) / 100;
+                dial_pos = (count + dial_pos) % 100;
             }
             _ => panic!("unkown dir"),
         };
