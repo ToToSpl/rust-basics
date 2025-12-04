@@ -1,20 +1,15 @@
 use std::fs;
 
-// const INPUT: &str = "input.txt";
-const INPUT: &str = "input.test.txt";
+const INPUT: &str = "input.txt";
+// const INPUT: &str = "input.test.txt";
 
-fn first_max<T>(v: &Vec<T>, skip_first: usize, skip_last: usize) -> Option<(usize, T)>
+fn first_max<T>(v: &Vec<T>, skip_first: usize, look_at: usize) -> Option<(usize, T)>
 where
     T: Copy + PartialOrd,
 {
     let mut max = None;
 
-    for (i, e) in v
-        .iter()
-        .enumerate()
-        .take(v.len() - skip_last)
-        .skip(skip_first)
-    {
+    for (i, e) in v.iter().enumerate().skip(skip_first).take(look_at) {
         if let Some((_bi, be)) = &max {
             if e > be {
                 max = Some((i, *e));
@@ -27,40 +22,45 @@ where
     max
 }
 
-fn task1() {
+fn best_bank_sum(bank_len: u32) -> u64 {
     let contents = fs::read_to_string(INPUT).unwrap();
 
-    let sum: u32 = contents
+    let best_banks: Vec<u64> = contents
         .lines()
         .map(|l| {
             let digits: Vec<u32> = l.chars().map(|c| c.to_digit(10).unwrap()).collect();
 
-            let d1 = first_max(&digits, 0, 1).unwrap();
-            let d2 = first_max(&digits, d1.0 + 1, 0).unwrap();
+            let mut best_bank: u64 = 0;
+            let mut mantissa = 10u64.pow(bank_len - 1);
 
-            d1.1 * 10 + d2.1
+            let mut skips = digits.len() - bank_len as usize;
+            let mut i = 0;
+
+            for _ in 0..bank_len {
+                let d = if skips != 0 {
+                    let (d_i, d_v) = first_max(&digits, i, skips + 1).unwrap();
+                    skips -= d_i - i;
+                    i = d_i + 1;
+
+                    d_v
+                } else {
+                    let d = digits[i];
+                    i += 1;
+                    d
+                };
+
+                best_bank += d as u64 * mantissa;
+                mantissa /= 10;
+            }
+
+            best_bank
         })
-        .sum();
+        .collect();
 
-    println!("task1:\t{sum:?}");
-}
-
-fn task2() {
-    let contents = fs::read_to_string(INPUT).unwrap();
-
-    let sum: u128 = contents
-        .lines()
-        .map(|l| {
-            let digits: Vec<u32> = l.chars().map(|c| c.to_digit(10).unwrap()).collect();
-
-            0
-        })
-        .sum();
-
-    println!("task2:\t{sum}");
+    best_banks.into_iter().sum()
 }
 
 fn main() {
-    task1();
-    task2();
+    println!("task1:\t{:}", best_bank_sum(2));
+    println!("task2:\t{:}", best_bank_sum(12));
 }
