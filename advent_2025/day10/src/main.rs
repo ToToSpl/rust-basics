@@ -200,7 +200,6 @@ fn task2() {
         .par_iter()
         .map(|(joltage, buttons, buttons_mask)| {
             let best = minimize_clicks(&joltage, &buttons, &buttons_mask);
-            println!("{best:?}");
             best.unwrap()
         })
         .sum();
